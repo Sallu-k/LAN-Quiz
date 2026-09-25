@@ -1,0 +1,16 @@
+{
+  "name": "lan-quiz",
+  "version": "1.1.0",
+  "description": "Offline quiz system for events with slow or no internet: team phones answer over local wifi, the host runs everything from one laptop",
+  "private": true,
+  "license": "MIT",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "fresh": "node server.js --fresh",
+    "test": "node test/simulate.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

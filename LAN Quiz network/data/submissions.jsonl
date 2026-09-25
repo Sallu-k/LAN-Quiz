@@ -1,0 +1,4 @@
+{"t":"2026-09-22T02:05:21.823Z","type":"round-start","runId":1,"name":"Round 1"}
+{"t":"2026-09-22T02:06:39.316Z","type":"special-push","teamId":"T1","question":"s0"}
+{"t":"2026-09-22T02:06:57.557Z","type":"special-push","teamId":"T1","question":"s0"}
+{"t":"2026-09-22T02:07:14.097Z","type":"special-timeout","id":"p2","teamId":"T1"}

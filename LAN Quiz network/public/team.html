@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>LAN Quiz — Team</title>
+<link rel="stylesheet" href="themes.css">
+<script src="theme-picker.js"></script>
+<script src="event-name.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  [hidden] { display: none !important; }
+  .screen { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+  .center { justify-content: center; align-items: center; text-align: center; padding: 24px 20px; gap: 14px; }
+  h1 { font-size: 26px; margin: 0; letter-spacing: .3px; }
+  p { margin: 0; color: var(--muted); line-height: 1.45; }
+  .brand { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+
+  input[type=text] {
+    width: 100%; font-size: 18px; padding: 14px 14px; border-radius: 12px; border: 2px solid var(--line);
+    background: var(--panel); color: var(--text); outline: none;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+  input[type=text]:disabled { opacity: .75; }
+  .btn {
+    font: inherit; font-size: 18px; font-weight: 700; border: 0; border-radius: 14px; padding: 16px 20px;
+    min-height: 54px; width: 100%; color: var(--text); background: var(--panel2); cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.armed { background: var(--warn); color: #2b1a00; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .msg { min-height: 22px; color: var(--bad); font-size: 15px; }
+  .link { background: none; border: 0; color: var(--muted); text-decoration: underline; font: inherit; font-size: 14px; padding: 8px; }
+  form.login { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+  #teamInput { text-align: center; font-size: 26px; letter-spacing: 2px; text-transform: uppercase; }
+
+  .dots::after { content: ""; animation: dots 1.4s steps(4, end) infinite; }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+
+  .net { position: fixed; left: 0; right: 0; top: 0; z-index: 50; background: var(--warn); color: #2b1a00;
+    text-align: center; font-weight: 700; font-size: 14px; height: 32px; line-height: 32px; padding: 0 8px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.offline .bar { top: 32px; }   /* keep team + countdown visible under the banner */
+  body.offline .overlay { padding-top: 48px; }
+
+  /* round screen */
+  .bar { position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 10px 16px 0; border-bottom: 1px solid var(--line); }
+  .bar .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .team { font-weight: 800; font-size: 20px; }
+  .rname { color: var(--muted); font-size: 13px; }
+  .timer { font-variant-numeric: tabular-nums; font-size: 40px; font-weight: 800; line-height: 1.1; }
+  .timer.low { color: var(--bad); animation: pulse 1s ease-in-out infinite; }
+  .timer.done { color: var(--good); font-size: 30px; }
+  .timer.closed { color: var(--muted); font-size: 30px; }
+  @keyframes pulse { 50% { opacity: .55; } }
+  .progress { height: 6px; background: var(--panel); margin: 8px -16px 0; }
+  .progress i { display: block; height: 100%; width: 100%; background: var(--accent); transition: width .2s linear; }
+  .progress.low i { background: var(--bad); }
+
+  .banner { margin: 12px 16px 0; padding: 12px 14px; border-radius: 12px; font-weight: 600; line-height: 1.35; }
+  .banner.ok { background: rgba(47, 208, 138, .15); color: var(--good); border: 1px solid rgba(47, 208, 138, .4); }
+  .banner.info { background: rgba(91, 140, 255, .15); color: #a9c1ff; border: 1px solid rgba(91, 140, 255, .4); }
+  .banner.warn { background: rgba(255, 176, 32, .15); color: var(--warn); border: 1px solid rgba(255, 176, 32, .4); }
+
+  #qs { padding: 12px 16px 130px; display: flex; flex-direction: column; gap: 14px; }
+  .q { background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 14px; }
+  .q.answered { border-color: rgba(91, 140, 255, .7); }
+  .qhead { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+  .qnum { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--panel2); display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+  .q.answered .qnum { background: var(--accent); color: var(--accent-ink); }
+  .qtext { font-size: 19px; line-height: 1.35; font-weight: 600; padding-top: 2px; overflow-wrap: anywhere; }
+  .opts { display: flex; flex-direction: column; gap: 8px; }
+  .opt {
+    display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; font-size: 18px; color: var(--text);
+    background: var(--panel2); border: 2px solid transparent; border-radius: 12px; padding: 13px 12px; min-height: 52px; cursor: pointer;
+  }
+  .opt .letter { flex: none; width: 30px; height: 30px; border-radius: 8px; background: var(--bg); display: grid; place-items: center; font-weight: 800; font-size: 15px; color: var(--muted); }
+  .opt.sel { border-color: var(--accent); background: rgba(91, 140, 255, .22); }
+  .opt.sel .letter { background: var(--accent); color: var(--accent-ink); }
+  .opt:disabled { opacity: 1; cursor: default; }
+  form.locked .opt:not(.sel) { opacity: .5; }
+
+  .foot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 70%, rgba(11, 16, 32, 0)); display: flex; flex-direction: column; gap: 8px; }
+  .count { text-align: center; color: var(--muted); font-size: 14px; }
+
+  /* special overlay */
+  .overlay { position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow-y: auto; padding: 16px 16px 40px; display: flex; flex-direction: column; gap: 16px; }
+  .overlay .tag { display: inline-block; align-self: flex-start; background: var(--warn); color: #2b1a00; font-weight: 800; letter-spacing: 2px; font-size: 13px; padding: 5px 10px; border-radius: 8px; }
+  .overlay .timer { text-align: center; font-size: 64px; }
+  .overlay .q { border-color: var(--warn); }
+</style>
+</head>
+<body>
+
+<div id="net" class="net" hidden>No connection — answers are saved on this phone</div>
+
+<!-- Login -->
+<main id="login" class="screen center">
+  <div class="brand">LAN Quiz</div>
+  <h1>Enter your Team ID</h1>
+  <p>Type the ID you were given, e.g. <b>T1</b></p>
+  <form id="loginForm" class="login" autocomplete="off">
+    <input id="teamInput" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="20" placeholder="T1" aria-label="Team ID">
+    <button id="loginBtn" class="btn primary" type="submit">Join</button>
+    <div id="loginMsg" class="msg" role="alert"></div>
+  </form>
+  <div id="themeSlot" style="margin-top: 18px;"></div>
+</main>
+
+<!-- First load / reconnecting -->
+<main id="boot" class="screen center" hidden>
+  <div class="brand">LAN Quiz</div>
+  <p>Connecting<span class="dots"></span></p>
+</main>
+
+<!-- Waiting for the host -->
+<main id="wait" class="screen center" hidden>
+  <div class="brand">LAN Quiz</div>
+  <h1 id="waitTeam"></h1>
+  <p>You're in. Waiting for the host to start the round<span class="dots"></span></p>
+  <p>Keep this page open. It updates by itself.</p>
+  <button id="switchBtn" class="link" type="button">Wrong team? Switch</button>
+  <div id="themeSlotWait" style="margin-top: 8px;"></div>
+</main>
+
+<!-- Round -->
+<main id="round" class="screen" hidden>
+  <header class="bar">
+    <div class="row">
+      <div><div class="team" id="teamTag"></div><div class="rname" id="roundName"></div></div>
+      <div class="timer" id="timer">0:00</div>
+    </div>
+    <div class="progress" id="progress"><i id="bar"></i></div>
+  </header>
+  <div id="banner" class="banner" hidden></div>
+  <form id="qs" onsubmit="return false" autocomplete="off"></form>
+  <div class="foot" id="foot">
+    <div class="count" id="count"></div>
+    <button id="submitBtn" class="btn primary" type="button">Submit answers</button>
+  </div>
+</main>
+
+<!-- Special question (pushed by host) -->
+<div id="special" class="overlay" hidden>
+  <div class="tag">SPECIAL QUESTION</div>
+  <div class="timer" id="spTimer">0:00</div>
+  <div class="progress" id="spProgress" style="margin:0"><i id="spBar"></i></div>
+  <div id="spBody"></div>
+  <div id="spBanner" class="banner" hidden style="margin:0"></div>
+  <button id="spSubmit" class="btn primary" type="button">Submit answer</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  CQTheme.mount($('themeSlot'));
+  CQTheme.mount($('themeSlotWait'));
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode etc. — page still works */ } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+    keys() { try { return Object.keys(localStorage); } catch (e) { return []; } },
+  };
+
+  // ---------- session ----------
+  let session = null;
+  try { session = JSON.parse(store.get('cq:session') || 'null'); } catch (e) { session = null; }
+
+  // ---------- server clock ----------
+  let offset = 0;
+  const samples = [];
+  function noteSample(t0, t1, serverNow) {
+    samples.push({ rtt: t1 - t0, off: serverNow - (t0 + t1) / 2 });
+    if (samples.length > 5) samples.shift();
+    offset = samples.reduce((b, s) => (s.rtt < b.rtt ? s : b)).off;
+  }
+  const serverNow = () => Date.now() + offset;
+
+  // ---------- network ----------
+  class ApiError extends Error {
+    constructor(status, code, message) { super(message); this.status = status; this.code = code; }
+  }
+  async function api(method, url, body) {
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 4000);
+    const t0 = Date.now();
+    try {
+      const res = await fetch(url, {
+        method, signal: ctl.signal, cache: 'no-store',
+        headers: Object.assign({ 'Content-Type': 'application/json' },
+          session ? { 'x-team': session.teamId, 'x-token': session.token } : {}),
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      const t1 = Date.now();
+      let json = null;
+      try { json = await res.json(); } catch (e) { /* non-JSON (e.g. captive portal page) */ }
+      if (!res.ok || json === null) throw new ApiError(res.ok ? 0 : res.status, json && json.code, (json && json.error) || 'Server problem');
+      if (json.serverNow) noteSample(t0, t1, json.serverNow);
+      return json;
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      throw new ApiError(0, 'network', 'Network problem');
+    } finally {
+      clearTimeout(to);
+    }
+  }
+  const isNetErr = (e) => e.status === 0 || e.status >= 500;
+
+  // ---------- screens ----------
+  function show(name) {
+    for (const s of ['login', 'boot', 'wait', 'round']) $(s).hidden = s !== name;
+  }
+  let failures = 0;
+  function setOnline(ok) {
+    failures = ok ? 0 : failures + 1;
+    $('net').hidden = failures < 2;
+    document.body.classList.toggle('offline', failures >= 2);
+  }
+
+  // ---------- login ----------
+  $('teamInput').value = session ? session.teamId : '';
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = $('teamInput').value.trim();
+    if (!id) return;
+    $('loginMsg').textContent = '';
+    $('loginBtn').disabled = true;
+    try {
+      const r = await api('POST', '/api/login', { teamId: id, token: session ? session.token : undefined });
+      session = { teamId: r.teamId, token: r.token };
+      store.set('cq:session', JSON.stringify(session));
+      startApp();
+    } catch (err) {
+      $('loginMsg').textContent = isNetErr(err)
+        ? "Can't reach the server. Check you're on the event wifi and mobile data is off." : err.message;
+    } finally {
+      $('loginBtn').disabled = false;
+    }
+  });
+  $('switchBtn').addEventListener('click', () => {
+    if (!confirm('Switch team? Ask the host to release ' + (session && session.teamId) + ' afterwards.')) return;
+    logout('');
+    $('teamInput').value = '';
+  });
+  function logout(msg) {
+    session = null;
+    store.del('cq:session');
+    resetRound();
+    hideSpecial();
+    show('login');
+    $('loginMsg').textContent = msg || '';
+  }
+
+  // ---------- round state ----------
+  let cur = newCur();
+  function newCur() {
+    return { runId: null, questions: [], answers: {}, endsAt: 0, durationMs: 1, phase: 'running',
+             submitted: false, locked: false, wantSubmit: false, armed: false };
+  }
+  let dirty = false, ver = 0;
+  const ansKey = () => 'cq:ans:' + session.teamId + ':' + cur.runId;
+
+  function resetRound() {
+    cur = newCur();
+    $('qs').innerHTML = '';
+    dirty = false;
+  }
+
+  function buildRound(r, serverDraft) {
+    cur = newCur();
+    cur.runId = r.runId;
+    cur.questions = r.questions;
+    // forget saved answers from earlier rounds, keep this round's (survives a page reload)
+    for (const k of store.keys()) if (k.indexOf('cq:ans:') === 0 && k !== ansKey()) store.del(k);
+    let local = {};
+    try { local = JSON.parse(store.get(ansKey()) || '{}') || {}; } catch (e) { local = {}; }
+    cur.answers = Object.assign({}, serverDraft || {}, local);
+    dirty = Object.keys(local).length > 0;
+
+    $('roundName').textContent = r.name;
+    const form = $('qs');
+    form.innerHTML = '';
+    form.className = '';
+    r.questions.forEach((q, i) => {
+      const box = document.createElement('section');
+      box.className = 'q';
+      box.dataset.qid = q.id;
+      const head = document.createElement('div');
+      head.className = 'qhead';
+      const num = document.createElement('div');
+      num.className = 'qnum';
+      num.textContent = String(i + 1);
+      const text = document.createElement('div');
+      text.className = 'qtext';
+      text.textContent = q.text;
+      head.append(num, text);
+      box.append(head);
+      if (q.type === 'mcq') {
+        const opts = document.createElement('div');
+        opts.className = 'opts';
+        q.options.forEach((label, oi) => {
+          const letter = String.fromCharCode(65 + oi);
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'opt';
+          b.dataset.letter = letter;
+          const l = document.createElement('span');
+          l.className = 'letter';
+          l.textContent = letter;
+          const t = document.createElement('span');
+          t.textContent = label;
+          b.append(l, t);
+          b.addEventListener('click', () => {
+            if (cur.locked) return;
+            cur.answers[q.id] = letter;
+            changed();
+          });
+          opts.append(b);
+        });
+        box.append(opts);
+      } else {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.setAttribute('autocomplete', 'off');
+        inp.setAttribute('autocapitalize', 'none');
+        inp.setAttribute('autocorrect', 'off');
+        inp.setAttribute('spellcheck', 'false');
+        inp.setAttribute('enterkeyhint', 'next');
+        inp.maxLength = 200;
+        inp.placeholder = 'Type your answer';
+        inp.addEventListener('input', () => {
+          if (cur.locked) return;
+          cur.answers[q.id] = inp.value;
+          changed();
+        });
+        inp.addEventListener('keydown', (ev) => {
+          if (ev.key !== 'Enter') return;
+          ev.preventDefault();
+          const all = Array.from(form.querySelectorAll('input[type=text]'));
+          const next = all[all.indexOf(inp) + 1];
+          if (next) next.focus(); else inp.blur();
+        });
+        box.append(inp);
+      }
+      form.append(box);
+    });
+    refreshForm();
+  }
+
+  // Paint cur.answers into the DOM (selection highlights, input text, counters)
+  function refreshForm() {
+    $('qs').querySelectorAll('.q').forEach((box) => {
+      const qid = box.dataset.qid;
+      const v = cur.answers[qid] || '';
+      box.classList.toggle('answered', v.trim() !== '');
+      box.querySelectorAll('.opt').forEach((b) => b.classList.toggle('sel', b.dataset.letter === v));
+      const inp = box.querySelector('input');
+      if (inp && inp.value !== v && document.activeElement !== inp) inp.value = v;
+    });
+    updateCount();
+  }
+  function answeredCount() {
+    return cur.questions.filter((q) => (cur.answers[q.id] || '').trim() !== '').length;
+  }
+  function updateCount() {
+    const n = answeredCount(), total = cur.questions.length;
+    $('count').textContent = n + ' of ' + total + ' answered';
+    const btn = $('submitBtn');
+    if (cur.armed) { btn.textContent = 'Tap again to confirm'; btn.classList.add('armed'); }
+    else {
+      btn.classList.remove('armed');
+      btn.textContent = n < total ? 'Submit (' + (total - n) + ' unanswered)' : 'Submit answers';
+    }
+  }
+  function changed() {
+    store.set(ansKey(), JSON.stringify(cur.answers));
+    ver++; dirty = true;
+    cur.armed = false;
+    refreshForm();
+  }
+
+  function lockForm() {
+    cur.locked = true;
+    $('qs').classList.add('locked');
+    $('qs').querySelectorAll('input, button').forEach((el) => { el.disabled = true; });
+    $('submitBtn').disabled = true;
+  }
+  function setBanner(kind, text) {
+    const b = $('banner');
+    if (!kind) { b.hidden = true; return; }
+    b.className = 'banner ' + kind;
+    b.textContent = text;
+    b.hidden = false;
+  }
+
+  function markSubmitted(sub) {
+    cur.submitted = true;
+    cur.answers = Object.assign({}, sub.answers);
+    store.set(ansKey(), JSON.stringify(cur.answers));
+    refreshForm();
+    lockForm();
+    $('foot').hidden = true;
+    if (sub.source === 'auto-locked') {
+      setBanner('warn', "Time's up — your answers were locked automatically. Waiting for the host…");
+    } else {
+      setBanner('ok', 'Submitted in ' + (sub.elapsedMs / 1000).toFixed(1) + 's ✔  Waiting for the host…');
+    }
+  }
+
+  // ---------- submitting ----------
+  $('submitBtn').addEventListener('click', () => {
+    if (cur.locked || cur.submitted) return;
+    if (answeredCount() < cur.questions.length && !cur.armed) {
+      cur.armed = true; updateCount();
+      const c = cur;
+      setTimeout(() => { if (c === cur && cur.armed) { cur.armed = false; updateCount(); } }, 3000);
+      return;
+    }
+    requestSubmit(false);
+  });
+
+  function requestSubmit(auto) {
+    if (cur.submitted || cur.wantSubmit) return;
+    cur.wantSubmit = true;
+    lockForm();
+    setBanner('info', auto ? "Time's up — sending your answers…" : 'Sending your answers…');
+    attempt(cur, auto);
+  }
+  async function attempt(c, auto) {
+    if (c !== cur || c.submitted) return;
+    try {
+      const r = await api('POST', '/api/team/submit', { runId: c.runId, answers: c.answers, auto: auto });
+      if (c === cur) markSubmitted(r.submission);
+    } catch (e) {
+      if (c !== cur) return;
+      if (e.status === 401) { logout('Please log in again.'); return; }
+      if (e.code === 'closed' || e.code === 'stale-run' || e.code === 'no-round') {
+        // Server won't take it (too late). The next poll shows what the server kept.
+        setBanner('warn', "Time's up — the round is closed. Waiting for the host…");
+        return;
+      }
+      setTimeout(() => attempt(c, auto), 700); // network blip: keep trying until the server confirms
+    }
+  }
+
+  // ---------- special question ----------
+  let sp = { id: null };
+  function hideSpecial() {
+    if (sp.id !== null) { $('special').hidden = true; document.body.style.overflow = ''; sp = { id: null }; }
+  }
+  function showSpecial(s) {
+    if (sp.id !== s.id) buildSpecial(s);
+    sp.endsAt = s.endsAt; sp.durationMs = s.durationMs;
+    $('special').hidden = false;
+    uiTick();
+  }
+  function buildSpecial(s) {
+    sp = { id: s.id, q: s.question, answer: '', endsAt: s.endsAt, durationMs: s.durationMs, submitted: false, wantSubmit: false, locked: false };
+    try { sp.answer = store.get('cq:sp:' + session.teamId + ':' + s.id) || ''; } catch (e) { sp.answer = ''; }
+    document.body.style.overflow = 'hidden';
+    const body = $('spBody');
+    body.innerHTML = '';
+    $('spBanner').hidden = true;
+    $('spSubmit').disabled = false;
+    $('spSubmit').hidden = false;
+    const box = document.createElement('section');
+    box.className = 'q';
+    const head = document.createElement('div');
+    head.className = 'qhead';
+    const text = document.createElement('div');
+    text.className = 'qtext';
+    text.textContent = s.question.text;
+    head.append(text);
+    box.append(head);
+    const save = () => store.set('cq:sp:' + session.teamId + ':' + s.id, sp.answer);
+    if (s.question.type === 'mcq') {
+      const opts = document.createElement('div');
+      opts.className = 'opts';
+      s.question.options.forEach((label, oi) => {
+        const letter = String.fromCharCode(65 + oi);
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'opt' + (sp.answer === letter ? ' sel' : '');
+        b.dataset.letter = letter;
+        const l = document.createElement('span'); l.className = 'letter'; l.textContent = letter;
+        const t = document.createElement('span'); t.textContent = label;
+        b.append(l, t);
+        b.addEventListener('click', () => {
+          if (sp.locked) return;
+          sp.answer = letter; save();
+          opts.querySelectorAll('.opt').forEach((x) => x.classList.toggle('sel', x.dataset.letter === letter));
+        });
+        opts.append(b);
+      });
+      box.append(opts);
+    } else {
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.maxLength = 200; inp.placeholder = 'Type your answer'; inp.value = sp.answer;
+      inp.setAttribute('autocomplete', 'off'); inp.setAttribute('autocapitalize', 'none');
+      inp.setAttribute('autocorrect', 'off'); inp.setAttribute('spellcheck', 'false');
+      inp.addEventListener('input', () => { if (!sp.locked) { sp.answer = inp.value; save(); } });
+      inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); } });
+      box.append(inp);
+    }
+    body.append(box);
+  }
+  function lockSpecial() {
+    sp.locked = true;
+    $('spBody').querySelectorAll('input, button').forEach((el) => { el.disabled = true; });
+    $('spSubmit').disabled = true;
+  }
+  function submitSpecial(auto) {
+    if (sp.id === null || sp.submitted || sp.wantSubmit) return;
+    sp.wantSubmit = true;
+    lockSpecial();
+    const banner = $('spBanner');
+    banner.className = 'banner info'; banner.textContent = 'Sending…'; banner.hidden = false;
+    const mine = sp;
+    (async function go() {
+      if (mine !== sp) return;
+      try {
+        await api('POST', '/api/team/special-answer', { specialId: mine.id, answer: mine.answer });
+        mine.submitted = true;
+        banner.className = 'banner ok'; banner.textContent = 'Answer sent ✔'; $('spSubmit').hidden = true;
+      } catch (e) {
+        if (mine !== sp) return;
+        if (e.status === 401) { logout('Please log in again.'); return; }
+        if (e.code === 'closed' || e.code === 'no-special') {
+          banner.className = 'banner warn'; banner.textContent = "Time's up."; return;
+        }
+        setTimeout(go, 700);
+      }
+    })();
+  }
+  $('spSubmit').addEventListener('click', () => submitSpecial(false));
+
+  // ---------- applying server state ----------
+  function apply(st) {
+    if (st.special) showSpecial(st.special); else hideSpecial();
+    const r = st.round;
+    $('waitTeam').textContent = 'Team ' + st.team + (st.teamName && st.teamName !== st.team ? ' — ' + st.teamName : '');
+    $('teamTag').textContent = st.team;
+    if (!r) {
+      if (cur.runId !== null) resetRound();
+      show('wait');
+      return;
+    }
+    if (cur.runId !== r.runId) buildRound(r, st.draft);
+    cur.endsAt = r.endsAt;
+    cur.durationMs = r.durationMs;
+    cur.phase = r.phase;
+    if (st.submission && !cur.submitted) {
+      markSubmitted(st.submission);
+    } else if (r.phase === 'locked' && !cur.submitted) {
+      lockForm();
+      $('foot').hidden = true;
+      setBanner('warn', 'This round is closed. Waiting for the host to start the next one…');
+    } else if (!cur.submitted && !cur.wantSubmit) {
+      $('foot').hidden = false;
+    }
+    show('round');
+    uiTick();
+  }
+
+  // ---------- timers ----------
+  const mmss = (ms) => {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  };
+  function uiTick() {
+    const now = serverNow();
+    if (cur.runId !== null && !$('round').hidden) {
+      const rem = cur.endsAt - now;
+      const t = $('timer');
+      if (cur.submitted) { t.textContent = 'Done ✔'; t.className = 'timer done'; $('progress').classList.remove('low'); }
+      else if (cur.phase === 'locked') { t.textContent = 'Closed'; t.className = 'timer closed'; }
+      else {
+        t.textContent = mmss(rem);
+        t.className = 'timer' + (rem <= 10000 ? ' low' : '');
+        $('bar').style.width = Math.max(0, Math.min(100, (rem / cur.durationMs) * 100)) + '%';
+        $('progress').classList.toggle('low', rem <= 10000);
+        if (rem <= 0) requestSubmit(true);
+      }
+      if (cur.submitted || cur.phase === 'locked') $('bar').style.width = '0%';
+    }
+    if (sp.id !== null && !$('special').hidden) {
+      const rem = sp.endsAt - now;
+      $('spTimer').textContent = sp.submitted ? '✔' : mmss(rem);
+      $('spTimer').className = 'timer' + (!sp.submitted && rem <= 5000 ? ' low' : '');
+      $('spBar').style.width = Math.max(0, Math.min(100, (rem / sp.durationMs) * 100)) + '%';
+      if (rem <= 0) submitSpecial(true);
+    }
+  }
+  setInterval(uiTick, 100);
+
+  // ---------- polling loop ----------
+  let running = false;
+  async function loop() {
+    if (!session) { running = false; return; }
+    try {
+      if (dirty && cur.runId !== null && !cur.submitted) {
+        const v = ver;
+        try {
+          await api('PUT', '/api/team/draft', { runId: cur.runId, answers: cur.answers });
+          if (v === ver) dirty = false;
+        } catch (e) { if (e.status === 401) throw e; /* keep dirty, retry next tick */ }
+      }
+      const st = await api('GET', '/api/team/state');
+      setOnline(true);
+      apply(st);
+    } catch (e) {
+      if (e.status === 401) { logout('Please log in again.'); running = false; return; }
+      setOnline(false);
+    }
+    setTimeout(loop, 1000);
+  }
+  function startApp() {
+    show('boot');
+    $('waitTeam').textContent = 'Team ' + session.teamId;
+    if (!running) { running = true; loop(); }
+  }
+
+  if (session) startApp(); else show('login');
+})();
+</script>
+</body>
+</html>
