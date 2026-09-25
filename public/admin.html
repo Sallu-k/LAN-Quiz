@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LAN Quiz — Question Admin</title>
+<link rel="stylesheet" href="themes.css">
+<script src="theme-picker.js"></script>
+<script src="event-name.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  [hidden] { display: none !important; }
+  button, select, input, textarea { font: inherit; }
+
+  .top { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 2px solid var(--line);
+    padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .top h1 { font-size: 20px; margin: 0; }
+  .top a { color: var(--muted); text-decoration: none; font-size: 14px; }
+  .top a:hover { color: var(--text); }
+  .spacer { flex: 1; }
+
+  .btn { border: 0; border-radius: 10px; padding: 10px 16px; font-size: 15px; font-weight: 700; cursor: pointer; background: var(--panel2); color: var(--text); }
+  .btn:hover:not(:disabled) { filter: brightness(1.2); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.danger { background: var(--bad); color: #2b0007; }
+  .btn.ghost { background: transparent; border: 2px solid var(--line); }
+  .icon-btn { border: 0; background: var(--panel2); color: var(--muted); border-radius: 8px; width: 32px; height: 32px; font-size: 15px; cursor: pointer; }
+  .icon-btn:hover { color: var(--text); filter: brightness(1.2); }
+  .icon-btn:disabled { opacity: .3; cursor: default; }
+
+  .savebar { position: sticky; top: 57px; z-index: 19; background: var(--panel); border-bottom: 2px solid var(--line);
+    padding: 10px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .savebar .state { color: var(--muted); font-size: 14px; }
+  .savebar .state.dirty { color: var(--warn); font-weight: 700; }
+
+  .banner { margin: 12px 20px 0; padding: 12px 14px; border-radius: 10px; font-weight: 600; line-height: 1.4; }
+  .banner.err { background: rgba(255, 93, 108, .15); border: 1px solid var(--bad); color: #ffb3bb; }
+  .banner.warn { background: rgba(255, 176, 32, .12); border: 1px solid var(--warn); color: var(--warn); }
+  .banner ul { margin: 6px 0 0; padding-left: 20px; font-weight: 400; }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 20px 20px 80px; display: flex; flex-direction: column; gap: 22px; }
+  h2.section { font-size: 15px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin: 6px 0 0; }
+
+  .round { background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .roundhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .roundhead input[type=text] { font-size: 18px; font-weight: 700; background: var(--panel2); border: 2px solid var(--line); border-radius: 10px; padding: 8px 12px; color: var(--text); min-width: 160px; flex: 1; }
+  .timerfield { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; }
+  .timerfield input[type=number] { width: 70px; background: var(--panel2); border: 2px solid var(--line); border-radius: 8px; padding: 7px 8px; color: var(--text); }
+  .btnrow { display: flex; gap: 6px; margin-left: auto; }
+
+  .qlist { display: flex; flex-direction: column; gap: 10px; }
+  .qbox { background: var(--panel2); border: 2px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .qbox .row1 { display: flex; align-items: center; gap: 8px; }
+  .qbox select { background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 6px 8px; color: var(--text); }
+  .qbox textarea { width: 100%; min-height: 44px; resize: vertical; background: var(--bg); border: 2px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; color: var(--text); }
+  .qbox .opts { display: flex; flex-direction: column; gap: 6px; }
+  .qbox .opt { display: flex; align-items: center; gap: 8px; }
+  .qbox .opt input[type=text] { flex: 1; background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 7px 10px; color: var(--text); }
+  .qbox .opt input[type=radio] { width: 20px; height: 20px; accent-color: var(--good); flex: none; }
+  .qbox .manual { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; padding-top: 2px; }
+  .qbox .manual input[type=radio] { width: 20px; height: 20px; accent-color: var(--warn); }
+  .qbox .accepted { display: flex; flex-direction: column; gap: 6px; }
+  .qbox .accepted input[type=text] { flex: 1; background: var(--bg); border: 2px solid var(--line); border-radius: 8px; padding: 7px 10px; color: var(--text); }
+  .qbox .manualcheck { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+  .hint { color: var(--muted); font-size: 12px; }
+
+  .addbtn { align-self: flex-start; background: transparent; border: 2px dashed var(--line); color: var(--muted);
+    border-radius: 10px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+  .addbtn:hover { color: var(--text); border-color: var(--accent); }
+
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--bad); color: #2b0007;
+    font-weight: 700; padding: 10px 18px; border-radius: 10px; z-index: 60; max-width: 90vw; }
+  .toast.ok { background: var(--good); color: #04241a; }
+  .auth { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .8); display: grid; place-items: center; }
+  .auth > div { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 22px; width: min(92vw, 380px); display: flex; flex-direction: column; gap: 12px; }
+  .auth input { font-size: 18px; padding: 10px; border-radius: 8px; border: 2px solid var(--line); background: var(--bg); color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>Question Admin</h1>
+  <a href="/dashboard">← Back to dashboard</a>
+  <a href="/projector" target="_blank">Open projector view ↗</a>
+  <div class="spacer"></div>
+  <div id="themeSlot"></div>
+</div>
+
+<div class="savebar">
+  <button class="btn primary" id="saveBtn">Save changes</button>
+  <button class="btn ghost" id="discardBtn">Discard changes</button>
+  <span class="state" id="stateMsg">Loading…</span>
+  <div class="spacer"></div>
+  <span id="lockedNote" class="hint" hidden>A round is running — editing resumes once it's locked.</span>
+</div>
+
+<div id="errBanner" class="banner err" hidden></div>
+<div id="warnBanner" class="banner warn" hidden></div>
+
+<div class="wrap">
+  <h2 class="section">Rounds</h2>
+  <div id="roundsList"></div>
+  <button class="addbtn" id="addRoundBtn" type="button">+ Add round</button>
+
+  <h2 class="section">Special questions (pushed to one team)</h2>
+  <div class="round">
+    <div class="qlist" id="specialsList"></div>
+    <button class="addbtn" id="addSpecialBtn" type="button">+ Add special question</button>
+  </div>
+</div>
+
+<div id="auth" class="auth" hidden>
+  <div>
+    <b>Host key required</b>
+    <span class="hint">You're not on the laptop running the server. Enter the hostKey from config.json.</span>
+    <input id="keyInput" type="password" autocomplete="off">
+    <button class="btn primary" id="keyBtn">Continue</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var el = function (tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  CQTheme.mount($('themeSlot'));
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+
+  var hostKey = store.get('cq:hostkey') || '';
+  var doc = { rounds: [], specials: [] };
+  var dirty = false;
+  var loaded = false;
+  var roundRunning = false;
+
+  // ---------- network ----------
+  function ApiError(status, message) { this.status = status; this.message = message; }
+  function api(method, url, body) {
+    return fetch(url, {
+      method: method, cache: 'no-store',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, hostKey ? { 'x-host-key': hostKey } : {}),
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }).then(function (res) {
+      return res.json().catch(function () { return null; }).then(function (json) {
+        if (!res.ok) throw new ApiError(res.status, (json && json.error) || ('Error ' + res.status));
+        return json;
+      });
+    }, function () { throw new ApiError(0, 'Network problem'); });
+  }
+
+  var toastTimer = null;
+  function toast(msg, ok) {
+    var t = $('toast');
+    if (!t) { t = el('div', 'toast'); t.id = 'toast'; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.className = 'toast' + (ok ? ' ok' : '');
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 4500);
+  }
+
+  $('keyBtn').addEventListener('click', function () {
+    hostKey = $('keyInput').value.trim();
+    store.set('cq:hostkey', hostKey);
+    $('auth').hidden = true;
+    load();
+  });
+  $('keyInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('keyBtn').click(); });
+
+  function markDirty() {
+    dirty = true;
+    $('stateMsg').textContent = 'Unsaved changes';
+    $('stateMsg').className = 'state dirty';
+  }
+  function markClean(msg) {
+    dirty = false;
+    $('stateMsg').textContent = msg || 'All changes saved';
+    $('stateMsg').className = 'state';
+  }
+  function bindText(input, obj, key) {
+    input.value = obj[key] || '';
+    input.addEventListener('input', function () { obj[key] = input.value; markDirty(); });
+  }
+  function bindNumber(input, obj, key, fallback, min, max) {
+    input.value = obj[key] != null ? obj[key] : fallback;
+    input.addEventListener('input', function () {
+      var n = Number(input.value);
+      obj[key] = isNaN(n) ? fallback : Math.max(min, Math.min(max, n));
+      markDirty();
+    });
+  }
+  function confirmDirty(msg) {
+    return !dirty || confirm(msg + '\n\nYou have unsaved changes that will be lost.');
+  }
+
+  // ---------- one question editor (reused for round questions and specials) ----------
+  var uid = 0;
+  function buildQuestionBox(q, opts) {
+    var box = el('div', 'qbox');
+    var row1 = el('div', 'row1');
+
+    var typeSel = document.createElement('select');
+    ['mcq', 'text'].forEach(function (t) {
+      var o = el('option', '', t === 'mcq' ? 'Multiple choice' : 'One-word answer');
+      o.value = t;
+      typeSel.appendChild(o);
+    });
+    typeSel.value = q.type;
+    typeSel.addEventListener('change', function () {
+      q.type = typeSel.value;
+      if (q.type === 'mcq' && !Array.isArray(q.options)) q.options = ['', ''];
+      q.answer = null;
+      opts.rerender();
+    });
+    row1.appendChild(typeSel);
+
+    if (opts.showTimer) {
+      var tf = el('span', 'timerfield');
+      tf.appendChild(document.createTextNode('Timer:'));
+      var ti = document.createElement('input');
+      ti.type = 'number'; ti.min = 3; ti.max = 3600;
+      bindNumber(ti, q, 'timerSeconds', 15, 3, 3600);
+      tf.appendChild(ti);
+      tf.appendChild(document.createTextNode('s'));
+      row1.appendChild(tf);
+    }
+
+    var btns = el('div', 'btnrow');
+    var up = el('button', 'icon-btn', '↑'); up.type = 'button'; up.title = 'Move up';
+    up.disabled = opts.index === 0; up.addEventListener('click', function () { opts.move(-1); });
+    var down = el('button', 'icon-btn', '↓'); down.type = 'button'; down.title = 'Move down';
+    down.disabled = opts.index === opts.count - 1; down.addEventListener('click', function () { opts.move(1); });
+    var del = el('button', 'icon-btn', '✕'); del.type = 'button'; del.title = 'Delete';
+    del.addEventListener('click', function () {
+      if (confirm('Delete this question?')) opts.remove();
+    });
+    btns.appendChild(up); btns.appendChild(down); btns.appendChild(del);
+    row1.appendChild(btns);
+    box.appendChild(row1);
+
+    var text = document.createElement('textarea');
+    text.placeholder = 'Question text';
+    bindText(text, q, 'text');
+    box.appendChild(text);
+
+    var myId = ++uid;
+    if (q.type === 'mcq') {
+      if (!Array.isArray(q.options) || q.options.length < 2) q.options = ['', ''];
+      var currentIdx = (typeof q.answer === 'string' && q.answer.length === 1)
+        ? q.answer.charCodeAt(0) - 65 : -1;
+      var optsBox = el('div', 'opts');
+      q.options.forEach(function (optText, oi) {
+        var row = el('div', 'opt');
+        var radio = document.createElement('input');
+        radio.type = 'radio'; radio.name = 'ans' + myId;
+        radio.checked = oi === currentIdx;
+        radio.addEventListener('change', function () { q.answer = String.fromCharCode(65 + oi); markDirty(); });
+        var input = document.createElement('input');
+        input.type = 'text'; input.placeholder = 'Option ' + String.fromCharCode(65 + oi);
+        bindText(input, q.options, oi);
+        var rm = el('button', 'icon-btn', '✕'); rm.type = 'button'; rm.title = 'Remove option';
+        rm.disabled = q.options.length <= 2;
+        rm.addEventListener('click', function () {
+          if (q.answer === String.fromCharCode(65 + oi)) q.answer = null;
+          else if (currentIdx > oi) q.answer = String.fromCharCode(65 + currentIdx - 1);
+          q.options.splice(oi, 1);
+          markDirty(); opts.rerender();
+        });
+        row.appendChild(radio); row.appendChild(input); row.appendChild(rm);
+        optsBox.appendChild(row);
+      });
+      box.appendChild(optsBox);
+      if (q.options.length < 8) {
+        var addOpt = el('button', 'addbtn', '+ Add option'); addOpt.type = 'button';
+        addOpt.addEventListener('click', function () { q.options.push(''); markDirty(); opts.rerender(); });
+        box.appendChild(addOpt);
+      }
+      var manual = el('label', 'manual');
+      var mr = document.createElement('input');
+      mr.type = 'radio'; mr.name = 'ans' + myId; mr.checked = currentIdx === -1;
+      mr.addEventListener('change', function () { q.answer = null; markDirty(); });
+      manual.appendChild(mr);
+      manual.appendChild(document.createTextNode('No single correct answer — I\'ll mark this by hand'));
+      box.appendChild(manual);
+    } else {
+      if (q.answer !== null && !Array.isArray(q.answer)) q.answer = [String(q.answer)]; // normalize; null stays "manual"
+      var manualCk = el('label', 'manualcheck');
+      var ck = document.createElement('input');
+      ck.type = 'checkbox'; ck.checked = q.answer === null;
+      var acceptedBox = el('div', 'accepted');
+      function renderAccepted() {
+        acceptedBox.innerHTML = '';
+        if (q.answer === null) return;
+        if (q.answer.length === 0) q.answer.push('');
+        q.answer.forEach(function (a, ai) {
+          var row = el('div', 'opt');
+          var input = document.createElement('input');
+          input.type = 'text'; input.placeholder = 'Accepted answer';
+          bindText(input, q.answer, ai);
+          var rm = el('button', 'icon-btn', '✕'); rm.type = 'button'; rm.title = 'Remove';
+          rm.disabled = q.answer.length <= 1;
+          rm.addEventListener('click', function () { q.answer.splice(ai, 1); markDirty(); renderAccepted(); });
+          row.appendChild(input); row.appendChild(rm);
+          acceptedBox.appendChild(row);
+        });
+        var addA = el('button', 'addbtn', '+ Add another accepted wording'); addA.type = 'button';
+        addA.addEventListener('click', function () { q.answer.push(''); markDirty(); renderAccepted(); });
+        acceptedBox.appendChild(addA);
+      }
+      ck.addEventListener('change', function () {
+        q.answer = ck.checked ? null : [''];
+        markDirty(); renderAccepted();
+      });
+      manualCk.appendChild(ck);
+      manualCk.appendChild(document.createTextNode('No fixed answer — I\'ll mark this by hand'));
+      box.appendChild(manualCk);
+      box.appendChild(acceptedBox);
+      renderAccepted();
+      var hint = el('div', 'hint', 'Matching ignores capitals, spacing and punctuation — list every wording you\'d accept.');
+      box.appendChild(hint);
+    }
+    return box;
+  }
+
+  // ---------- rounds ----------
+  function newQuestion() { return { type: 'mcq', text: '', options: ['', ''], answer: null }; }
+
+  function renderRounds() {
+    var list = $('roundsList');
+    list.innerHTML = '';
+    doc.rounds.forEach(function (round, ri) {
+      var card = el('div', 'round');
+      var head = el('div', 'roundhead');
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text'; nameInput.placeholder = 'Round name';
+      bindText(nameInput, round, 'name');
+      head.appendChild(nameInput);
+
+      var tf = el('span', 'timerfield');
+      tf.appendChild(document.createTextNode('Timer:'));
+      var ti = document.createElement('input');
+      ti.type = 'number'; ti.min = 3; ti.max = 3600;
+      bindNumber(ti, round, 'timerSeconds', 30, 3, 3600);
+      tf.appendChild(ti);
+      tf.appendChild(document.createTextNode('s'));
+      head.appendChild(tf);
+
+      var btns = el('div', 'btnrow');
+      var up = el('button', 'icon-btn', '↑'); up.type = 'button'; up.title = 'Move round up';
+      up.disabled = ri === 0;
+      up.addEventListener('click', function () {
+        doc.rounds.splice(ri - 1, 0, doc.rounds.splice(ri, 1)[0]); markDirty(); renderRounds();
+      });
+      var down = el('button', 'icon-btn', '↓'); down.type = 'button'; down.title = 'Move round down';
+      down.disabled = ri === doc.rounds.length - 1;
+      down.addEventListener('click', function () {
+        doc.rounds.splice(ri + 1, 0, doc.rounds.splice(ri, 1)[0]); markDirty(); renderRounds();
+      });
+      var del = el('button', 'icon-btn', '✕'); del.type = 'button'; del.title = 'Delete round';
+      del.addEventListener('click', function () {
+        if (confirm('Delete "' + (round.name || 'this round') + '" and all its questions?')) {
+          doc.rounds.splice(ri, 1); markDirty(); renderRounds();
+        }
+      });
+      btns.appendChild(up); btns.appendChild(down); btns.appendChild(del);
+      head.appendChild(btns);
+      card.appendChild(head);
+
+      var qlist = el('div', 'qlist');
+      round.questions.forEach(function (q, qi) {
+        qlist.appendChild(buildQuestionBox(q, {
+          index: qi, count: round.questions.length, showTimer: false,
+          rerender: renderRounds,
+          move: function (d) { round.questions.splice(qi + d, 0, round.questions.splice(qi, 1)[0]); markDirty(); renderRounds(); },
+          remove: function () { round.questions.splice(qi, 1); markDirty(); renderRounds(); },
+        }));
+      });
+      card.appendChild(qlist);
+      if (round.questions.length === 0) card.appendChild(el('div', 'hint', 'No questions yet — add one below.'));
+
+      var addQ = el('button', 'addbtn', '+ Add question'); addQ.type = 'button';
+      addQ.addEventListener('click', function () { round.questions.push(newQuestion()); markDirty(); renderRounds(); });
+      card.appendChild(addQ);
+
+      list.appendChild(card);
+    });
+  }
+
+  function renderSpecials() {
+    var list = $('specialsList');
+    list.innerHTML = '';
+    doc.specials.forEach(function (s, si) {
+      list.appendChild(buildQuestionBox(s, {
+        index: si, count: doc.specials.length, showTimer: true,
+        rerender: renderSpecials,
+        move: function (d) { doc.specials.splice(si + d, 0, doc.specials.splice(si, 1)[0]); markDirty(); renderSpecials(); },
+        remove: function () { doc.specials.splice(si, 1); markDirty(); renderSpecials(); },
+      }));
+    });
+    if (doc.specials.length === 0) list.appendChild(el('div', 'hint', 'No special questions yet — add one below.'));
+  }
+
+  $('addRoundBtn').addEventListener('click', function () {
+    doc.rounds.push({ name: 'Round ' + (doc.rounds.length + 1), timerSeconds: 30, questions: [] });
+    markDirty(); renderRounds();
+  });
+  $('addSpecialBtn').addEventListener('click', function () {
+    doc.specials.push({ type: 'mcq', text: '', options: ['', ''], answer: null, timerSeconds: 15 });
+    markDirty(); renderSpecials();
+  });
+
+  // ---------- load / save ----------
+  function showErrors(list) {
+    var b = $('errBanner');
+    if (!list || !list.length) { b.hidden = true; return; }
+    b.innerHTML = '';
+    b.appendChild(document.createTextNode('These need fixing before saving:'));
+    var ul = el('ul');
+    list.forEach(function (m) { ul.appendChild(el('li', '', m)); });
+    b.appendChild(ul);
+    b.hidden = false;
+  }
+  function showWarnings(list) {
+    var b = $('warnBanner');
+    if (!list || !list.length) { b.hidden = true; return; }
+    b.textContent = 'Note: ' + list.join(' · ');
+    b.hidden = false;
+  }
+
+  function load() {
+    api('GET', '/api/host/questions').then(function (res) {
+      doc = res.doc;
+      loaded = true;
+      renderRounds();
+      renderSpecials();
+      showErrors(null);
+      showWarnings(res.warnings);
+      markClean();
+    }).catch(function (e) {
+      if (e.status === 401) { $('auth').hidden = false; return; }
+      toast(e.message);
+    });
+  }
+  $('discardBtn').addEventListener('click', function () {
+    if (!dirty || confirm('Discard all unsaved changes and reload from the server?')) load();
+  });
+  $('saveBtn').addEventListener('click', function () {
+    api('POST', '/api/host/save-questions', { doc: doc }).then(function (res) {
+      if (res.error) { showErrors(res.error); toast('Fix the errors above, then save again.'); return; }
+      showErrors(null);
+      showWarnings(res.warnings);
+      markClean('Saved ✓');
+      toast('Questions saved.', true);
+    }).catch(function (e) {
+      if (e.status === 401) { $('auth').hidden = false; return; }
+      toast(e.message);
+    });
+  });
+
+  // Light poll just to warn (and block Save) while a round is live — doesn't touch the editor's content.
+  function pollRoundStatus() {
+    api('GET', '/api/host/state').then(function (S) {
+      roundRunning = !!(S.round && (S.round.phase === 'running' || S.round.phase === 'closing'));
+      $('lockedNote').hidden = !roundRunning;
+      $('saveBtn').disabled = roundRunning;
+    }).catch(function () {});
+    setTimeout(pollRoundStatus, 3000);
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    if (dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  load();
+  pollRoundStatus();
+})();
+</script>
+</body>
+</html>
